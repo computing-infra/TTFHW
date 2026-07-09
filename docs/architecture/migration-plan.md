@@ -1,5 +1,8 @@
 # Migration Plan
 
+Detailed repository migration waves and acceptance criteria are maintained in
+`docs/migration/repository-migration-plan.md`.
+
 ## Current Source
 
 The current prototype repository is `kerer-ai/ttfhw-verify-batch`.
