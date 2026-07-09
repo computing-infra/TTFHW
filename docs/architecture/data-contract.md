@@ -1,5 +1,8 @@
 # Data Contract
 
+This document defines the platform-level contract semantics. Executable JSON
+Schema definitions live in `computing-infra/ttfhw-data-pipeline`.
+
 ## Contract Principles
 
 - Every cross-layer payload must include `schema_version`.
@@ -7,6 +10,16 @@
 - Data pipeline output is immutable once published under a run ID.
 - `latest` is a generated pointer or snapshot, not historical truth.
 - Large logs and binary artifacts are referenced, not embedded.
+
+## Schema Registry
+
+| Contract | Schema Version | Producer | Consumer | Executable Schema |
+| --- | --- | --- | --- | --- |
+| `RunSpec` | `ttfhw.run_spec.v1` | Control Plane | Runner | `ttfhw-data-pipeline/schemas/run-spec.v1.schema.json` |
+| `StepResult` | `ttfhw.step_result.v1` | Runner | Data Pipeline, Control Plane event bridge | `ttfhw-data-pipeline/schemas/step-result.v1.schema.json` |
+| `RunReport` | `ttfhw.run_report.v1` | Data Pipeline | Dashboard, archive consumers | `ttfhw-data-pipeline/schemas/run-report.v1.schema.json` |
+| `DashboardIndex` | `ttfhw.dashboard_index.v1` | Data Pipeline | Dashboard | `ttfhw-data-pipeline/schemas/dashboard-index.v1.schema.json` |
+| `ArtifactRef` | `ttfhw.artifact_ref.v1` | Runner, Data Pipeline, Control Plane | All repositories | `ttfhw-data-pipeline/schemas/artifact-ref.v1.schema.json` |
 
 ## RunSpec
 
@@ -42,7 +55,7 @@ Each runner step writes one step result.
 
 ```json
 {
-  "schema_version": "ttfhw.step.build.v1",
+  "schema_version": "ttfhw.step_result.v1",
   "run_id": "run_20260709_000001",
   "repo": "ubs-engine",
   "step": "build",
@@ -56,8 +69,12 @@ Each runner step writes one step result.
       "exit_code": 0,
       "duration_seconds": 120,
       "log_ref": {
+        "schema_version": "ttfhw.artifact_ref.v1",
+        "type": "log",
+        "name": "cmake.log",
         "uri": "s3://ttfhw-runs/run_20260709_000001/repos/ubs-engine/artifacts/cmake.log",
-        "sha256": "..."
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "content_type": "text/plain"
       }
     }
   ],
@@ -71,7 +88,7 @@ The data pipeline produces one normalized report per repository per run.
 
 ```json
 {
-  "schema_version": "ttfhw.report.v1",
+  "schema_version": "ttfhw.run_report.v1",
   "run_id": "run_20260709_000001",
   "repo": {
     "name": "ubs-engine",
@@ -153,15 +170,20 @@ timeout
 - Removing fields or changing meaning requires a new major contract version.
 - The data pipeline owns migrations from older versions.
 - Dashboard should reject unknown major versions by default.
+- Implementation repositories must validate produced or consumed payloads
+  against the executable schemas before integration.
+- Contract changes that alter meaning, ownership, or compatibility require an
+  update to this document and, when appropriate, an ADR.
 
 ## Artifact Reference
 
 ```json
 {
+  "schema_version": "ttfhw.artifact_ref.v1",
   "type": "log",
   "name": "build.log",
   "uri": "s3://ttfhw-runs/run_id/repos/ubs-engine/artifacts/build.log",
-  "sha256": "...",
+  "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "content_type": "text/plain"
 }
 ```
